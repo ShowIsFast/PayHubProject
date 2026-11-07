@@ -1,0 +1,49 @@
+### 1. 统一下单（模拟渠道）
+POST http://localhost:8080/openapi/pay/unifiedorder
+Content-Type: application/json
+
+{
+  "merchantNo": "M100001",
+  "appId": "APP100001",
+  "outTradeNo": "T20261106001",
+  "amount": 8888,
+  "subject": "蓝牙耳机",
+  "channel": "MOCK"
+}
+
+> 再点一次「Send」，paymentNo 不变 —— 这就是幂等
+
+### 2. 参数校验（金额为 0，应返回 1001）
+POST http://localhost:8080/openapi/pay/unifiedorder
+Content-Type: application/json
+
+{
+  "merchantNo": "M100001",
+  "appId": "APP100001",
+  "outTradeNo": "T20261106009",
+  "amount": 0,
+  "subject": "测试",
+  "channel": "MOCK"
+}
+
+### 3. 查询支付单
+GET http://localhost:8080/openapi/pay/query/{{paymentNo}}
+
+### 4. 模拟渠道回调（把支付单改成成功）
+POST http://localhost:8080/notify/mock
+Content-Type: application/x-www-form-urlencoded
+
+paymentNo={{paymentNo}}&tradeNo=MOCK_DEMO_001
+
+### 5. 商户号与应用不匹配（应返回 2000）
+POST http://localhost:8080/openapi/pay/unifiedorder
+Content-Type: application/json
+
+{
+  "merchantNo": "M999999",
+  "appId": "APP100001",
+  "outTradeNo": "T20261106010",
+  "amount": 100,
+  "subject": "测试",
+  "channel": "MOCK"
+}

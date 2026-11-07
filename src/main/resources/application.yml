@@ -1,0 +1,84 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: PayHubProject
+
+  # ---------- 数据库：本地 MySQL ----------
+  # 说明：
+  #   createDatabaseIfNotExist=true → 首次启动自动建 payhub 库，不需要手写 CREATE DATABASE
+  #   allowPublicKeyRetrieval=true  → MySQL 8 默认 caching_sha2_password 认证需要
+  #   rewriteBatchedStatements=true → 批量插入合并成多值 INSERT（W5 对账批处理的关键优化）
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: "jdbc:mysql://127.0.0.1:3306/payhub?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true&rewriteBatchedStatements=true"
+    username: root
+    password: ""
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 3000
+
+  # 每次启动按脚本初始化：建表用 IF NOT EXISTS，种子数据用 INSERT IGNORE，可重复执行
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:db/schema.sql
+      data-locations: classpath:db/data.sql
+      encoding: UTF-8
+
+  jackson:
+    default-property-inclusion: non_null
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: Asia/Shanghai
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    banner: false
+    db-config:
+      id-type: auto
+
+# ---------- 本项目的业务开关 ----------
+payhub:
+  sign:
+    # W1 默认关闭商户请求验签，方便先用 Postman 跑通；
+    # 跑通后改成 true，就进入「签名校验」的学习环节（见 docs/W1-骨架导读.md 第 6 节）
+    verify-enabled: true
+
+  # 模拟收银台地址：跟随 server.port，避免换端口后 payUrl 指错
+  mock:
+    base-url: http://localhost:${server.port}
+
+  # ---------- 定时任务（W2 新增） ----------
+  job:
+    enabled: true
+    # 掉单补偿：只捞「超过 N 秒没更新」的单，避免为刚下单的支付浪费一次渠道查询
+    # 本地演示可以调小到 5~15 秒；生产建议 30~120 秒
+    compensate-delay-seconds: 15
+    compensate-interval-ms: 10000
+    close-interval-ms: 15000
+    outbox-interval-ms: 5000
+    batch-size: 50
+
+  channel:
+    # mock   = 本地模拟渠道，不需要任何支付宝账号，开箱可跑
+    # alipay = 调真实支付宝沙箱网关，需要填 app-id 和两把密钥
+    mode: mock
+
+    alipay:
+      # 沙箱网关；生产环境是 https://openapi.alipay.com/gateway.do
+      gateway: https://openapi-sandbox.dl.alipaydev.com/gateway.do
+      app-id: ""
+      # 应用私钥（PKCS8，去掉 -----BEGIN/END----- 头尾和换行）
+      merchant-private-key: ""
+      # 支付宝公钥（不是应用公钥！这是最容易填错的地方）
+      alipay-public-key: ""
+      notify-url: http://localhost:8080/notify/alipay
+
+logging:
+  level:
+    root: info
+    com.payhub: debug

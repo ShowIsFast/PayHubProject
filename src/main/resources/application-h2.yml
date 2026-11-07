@@ -1,0 +1,20 @@
+# 备用 profile：本机没装 MySQL 时用这个启动，例如
+#   java -jar target/PayHubProject-0.0.1-SNAPSHOT.jar --spring.profiles.active=h2
+# 或在 IDEA 的 Active profiles 里填 h2
+spring:
+  datasource:
+    driver-class-name: org.h2.Driver
+    url: jdbc:h2:file:./data/payhub;MODE=MySQL;AUTO_SERVER=TRUE
+    username: sa
+    password: ""
+
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:db/schema-h2.sql
+      data-locations: classpath:db/data-h2.sql
+
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
